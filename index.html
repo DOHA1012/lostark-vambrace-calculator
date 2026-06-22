@@ -1,0 +1,1721 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>로스트아크 완갑 전투력 계산기 | Vambrace Simulator</title>
+    <meta name="description" content="로스트아크 신규 장비 '완갑' 착용 및 재련 단계에 따른 캐릭터 전투력 및 공격력 증가량을 실시간으로 계산하는 시뮬레이터입니다." />
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+      /* Reset & Global Styling */
+      *, *::before, *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      :root {
+        --bg-dark: #090d16;
+        --bg-card: rgba(17, 24, 39, 0.65);
+        --bg-card-hover: rgba(23, 37, 59, 0.8);
+        --border-color: rgba(255, 255, 255, 0.07);
+        --border-glow: rgba(59, 130, 246, 0.3);
+        
+        --primary: #3b82f6;
+        --primary-glow: rgba(59, 130, 246, 0.4);
+        --secondary: #8b5cf6;
+        --secondary-glow: rgba(139, 92, 246, 0.4);
+        --accent: #00f2fe;
+        
+        --success: #10b981;
+        --success-glow: rgba(16, 185, 129, 0.25);
+        --warning: #f59e0b;
+        --danger: #ef4444;
+        
+        --text-primary: #f3f4f6;
+        --text-secondary: #9ca3af;
+        --text-muted: #6b7280;
+        
+        --font-sans: 'Outfit', 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        --shadow-lg: 0 10px 30px -10px rgba(0, 0, 0, 0.7);
+        --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        --radius: 16px;
+      }
+
+      body {
+        font-family: var(--font-sans);
+        background-color: var(--bg-dark);
+        background-image: 
+          radial-gradient(at 10% 20%, rgba(59, 130, 246, 0.04) 0px, transparent 50%),
+          radial-gradient(at 90% 80%, rgba(139, 92, 246, 0.04) 0px, transparent 50%);
+        background-attachment: fixed;
+        color: var(--text-primary);
+        min-height: 100vh;
+        line-height: 1.5;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      /* Scrollbar */
+      ::-webkit-scrollbar {
+        width: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: var(--bg-dark);
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #1e293b;
+        border-radius: 4px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #334155;
+      }
+
+      /* Layout */
+      .app-container {
+        max-width: 1200px;
+        width: 100%;
+        margin: 0 auto;
+        padding: 32px 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+      }
+
+      .app-header {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        padding: 24px 0 12px 0;
+        border-bottom: 1px solid var(--border-color);
+        margin-bottom: 12px;
+      }
+
+      .logo-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 12px;
+        background: rgba(59, 130, 246, 0.1);
+        border: 1px solid var(--border-glow);
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: var(--primary);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 12px;
+      }
+
+      h1 {
+        font-size: 2.25rem;
+        font-weight: 850;
+        letter-spacing: -0.025em;
+        background: linear-gradient(135deg, #ffffff 30%, #a5b4fc 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 8px;
+      }
+
+      .main-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 24px;
+      }
+
+      @media (min-width: 1024px) {
+        .main-grid {
+          grid-template-columns: 380px 1fr;
+        }
+      }
+
+      /* Cards & Glassmorphism */
+      .glass-card {
+        background: var(--bg-card);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow-lg);
+        padding: 24px;
+        transition: var(--transition);
+      }
+
+      .glass-card:hover {
+        border-color: rgba(255, 255, 255, 0.12);
+        background: var(--bg-card-hover);
+      }
+
+      .stats-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 16px;
+      }
+
+      @media (min-width: 640px) {
+        .stats-grid {
+          grid-template-columns: repeat(3, 1fr);
+        }
+      }
+
+      /* Typography & Helpers */
+      h3 {
+        font-size: 1.125rem;
+        font-weight: 700;
+        color: white;
+        margin-bottom: 16px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      label {
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: var(--text-secondary);
+        margin-bottom: 6px;
+        display: inline-block;
+      }
+
+      /* Form inputs */
+      input[type="text"], input[type="number"], input[type="password"] {
+        width: 100%;
+        padding: 12px 16px;
+        background: rgba(15, 23, 42, 0.6);
+        border: 1px solid var(--border-color);
+        border-radius: 10px;
+        color: var(--text-primary);
+        font-family: var(--font-sans);
+        font-size: 0.95rem;
+        transition: var(--transition);
+      }
+
+      input[type="text"]:focus, input[type="number"]:focus, input[type="password"]:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+        background: rgba(15, 23, 42, 0.85);
+      }
+
+      /* Form inputs disabled styling */
+      input:disabled, input[type="range"]:disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
+        background: rgba(15, 23, 42, 0.3) !important;
+        border-color: rgba(255, 255, 255, 0.03) !important;
+        color: var(--text-muted) !important;
+      }
+      input[type="range"]:disabled::-webkit-slider-thumb {
+        background: var(--text-muted) !important;
+        box-shadow: none !important;
+        cursor: not-allowed;
+      }
+
+      /* Buttons */
+      button {
+        cursor: pointer;
+        border: none;
+        outline: none;
+        font-family: var(--font-sans);
+        font-weight: 600;
+        transition: var(--transition);
+        border-radius: 10px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+      }
+
+      .btn-primary {
+        background: linear-gradient(135deg, var(--primary), var(--secondary));
+        color: white;
+        padding: 12px 24px;
+        box-shadow: 0 4px 15px -3px var(--primary-glow);
+      }
+
+      .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px -5px var(--primary-glow), 0 0 15px var(--primary);
+        filter: brightness(1.1);
+      }
+
+      .btn-secondary {
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid var(--border-color);
+        color: var(--text-primary);
+        padding: 8px 16px;
+      }
+
+      .btn-secondary:hover {
+        background: rgba(255, 255, 255, 0.12);
+        border-color: rgba(255, 255, 255, 0.2);
+      }
+
+      /* Sliders */
+      .slider-container {
+        margin-bottom: 20px;
+      }
+
+      .slider-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+      }
+
+      .slider-label {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--text-secondary);
+      }
+
+      .slider-value {
+        font-family: 'Outfit', monospace;
+        font-weight: 700;
+        font-size: 0.95rem;
+        color: var(--primary);
+      }
+
+      input[type="range"] {
+        -webkit-appearance: none;
+        width: 100%;
+        height: 6px;
+        background: #1e293b;
+        border-radius: 4px;
+        outline: none;
+      }
+
+      input[type="range"]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: var(--primary);
+        cursor: pointer;
+        border: 2px solid #090d16;
+        box-shadow: 0 0 10px var(--primary-glow);
+        transition: var(--transition);
+      }
+
+      input[type="range"]::-webkit-slider-thumb:hover {
+        transform: scale(1.2);
+        background: var(--accent);
+        box-shadow: 0 0 15px var(--accent);
+      }
+
+      /* CP Dashboard Spec Card */
+      .cp-dashboard {
+        background: radial-gradient(ellipse at top, rgba(16, 185, 129, 0.1), rgba(17, 24, 39, 0.75));
+        border: 1px solid var(--success);
+        box-shadow: 0 0 25px rgba(16, 185, 129, 0.1);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        gap: 16px;
+        padding: 32px;
+      }
+
+      .cp-badge {
+        background: rgba(16, 185, 129, 0.12);
+        border: 1px solid rgba(16, 185, 129, 0.3);
+        padding: 8px 20px;
+        border-radius: 30px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--success);
+        font-size: 1.1rem;
+        font-weight: 850;
+        box-shadow: 0 0 15px rgba(16, 185, 129, 0.15);
+      }
+
+      .value-highlight {
+        font-family: 'Outfit', sans-serif;
+        font-weight: 800;
+        color: white;
+      }
+
+      .unit-label {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        margin-left: 4px;
+      }
+
+      /* Collapsible Details */
+      .accordion-btn {
+        background: none;
+        width: 100%;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        color: var(--text-primary);
+        font-size: 1rem;
+        font-weight: 700;
+      }
+
+      .accordion-content {
+        margin-top: 16px;
+        border-top: 1px solid rgba(255, 255, 255, 0.05);
+        padding-top: 16px;
+        text-align: left;
+        display: none;
+        flex-direction: column;
+        gap: 20px;
+      }
+
+      .accordion-content.open {
+        display: flex;
+      }
+
+      .math-trace-box {
+        background: rgba(0,0,0,0.2);
+        padding: 10px 14px;
+        border-radius: 8px;
+        font-family: monospace;
+        font-size: 0.85rem;
+      }
+
+      /* Animations */
+      @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+      }
+      .animate-spin {
+        animation: spin 1s linear infinite;
+      }
+
+      /* History tags */
+      .history-tag {
+        background: rgba(255,255,255,0.04);
+        border: 1px solid var(--border-color);
+        border-radius: 20px;
+        padding: 4px 10px 4px 12px;
+        font-size: 0.8rem;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        transition: var(--transition);
+      }
+      .history-tag:hover {
+        background: rgba(255,255,255,0.08);
+      }
+      .history-tag-close {
+        color: var(--text-muted);
+        font-weight: bold;
+        font-size: 0.9rem;
+        padding: 0 2px;
+      }
+      .history-tag-close:hover {
+        color: var(--danger);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app-container">
+      <!-- Header -->
+      <header class="app-header">
+        <div class="logo-badge">
+          <i data-lucide="star" style="width:12px; height:12px; fill:currentColor;"></i> T4 신규 성장의 주역
+        </div>
+        <h1>완갑 전투력 계산기</h1>
+        <p style={{ fontSize: '1rem', marginTop: '4px' }}>
+          캐릭터의 현재 스펙과 완갑 강화도를 설정하여 완갑 장착 전후의 기본 공격력 및 최종 전투력 변화를 바로 확인하세요.
+        </p>
+      </header>
+
+      <!-- Main Grid Layout -->
+      <div class="main-grid">
+        
+        <!-- Left: Search, Info Card, Manual Inputs -->
+        <div style="display:flex; flex-direction:column; gap:24px;">
+          
+          <!-- Character Search Card -->
+          <div class="glass-card" style="display:flex; flex-direction:column; gap:16px;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <h3 style="margin:0;"><i data-lucide="user" style="color:var(--success);"></i> 캐릭터 조회</h3>
+              <button id="toggle-key-btn" class="btn-secondary" style="padding:6px 10px; font-size:0.8rem; border-radius:8px;">
+                <i data-lucide="key" style="width:12px; height:12px;"></i> API 키 설정
+              </button>
+            </div>
+
+            <!-- API Key Input Field (Toggled) -->
+            <div id="key-input-panel" style="display:none; flex-direction:column; gap:10px; background:rgba(0,0,0,0.2); padding:14px; border-radius:10px; border:1px solid rgba(255,255,255,0.05);">
+              <span style="font-size:0.8rem; color:var(--text-secondary);">Lost Ark OpenAPI JWT 토큰을 입력하세요.</span>
+              <input type="password" id="api-key-field" placeholder="bearer eyJhbGciOi..." />
+              <div style="font-size:0.7rem; color:var(--text-muted);">
+                키는 로컬 브라우저(localStorage)에만 안전하게 저장되며, 외부로 전송되지 않고 Stove API 다이렉트 통신용으로만 쓰입니다.
+              </div>
+              <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:4px;">
+                <button id="save-key-btn" class="btn-primary" style="padding:6px 12px; font-size:0.8rem; border-radius:8px;">저장</button>
+              </div>
+            </div>
+
+            <!-- CORS Warning banner -->
+            <div id="cors-banner" style="background:rgba(245, 158, 11, 0.1); border:1px solid rgba(245, 158, 11, 0.25); padding:12px; border-radius:10px; font-size:0.8rem; color:#fbbf24; text-align:left; display:flex; gap:8px;">
+              <i data-lucide="alert-triangle" style="flex-shrink:0; width:18px; height:18px;"></i>
+              <div>
+                <strong>CORS 안내</strong>: 브라우저 환경에서 OpenAPI 조회를 성공하려면 크롬 확장프로그램(예: 'Allow CORS') 등을 설치 및 활성화해야 합니다. 그렇지 않다면 아래 **수동 편집**을 통해 바로 계산해보세요!
+              </div>
+            </div>
+
+            <!-- Search Form -->
+            <form id="search-form" style="display:flex; gap:8px; margin-bottom:8px;">
+              <div style="position:relative; flex:1;">
+                <input type="text" id="character-name-field" placeholder="캐릭터명을 입력하세요" style="padding-left:36px;" />
+                <i data-lucide="search" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); width:16px; height:16px; color:var(--text-secondary);"></i>
+              </div>
+              <button type="submit" id="search-submit-btn" class="btn-primary" style="padding:12px 18px;">
+                <span id="search-btn-text">조회</span>
+              </button>
+            </form>
+
+
+
+            <div id="search-error-box" style="display:none; background:rgba(239, 68, 68, 0.08); border:1px dashed rgba(239, 68, 68, 0.2); padding:10px; border-radius:8px; font-size:0.8rem; color:#fca5a5; text-align:left;">
+            </div>
+
+            <!-- Search History -->
+            <div id="history-container" style="display:none; flex-direction:column; gap:8px; text-align:left;">
+              <span style="font-size:0.75rem; font-weight:600; color:var(--text-muted); display:flex; align-items:center; gap:4px;">
+                <i data-lucide="history" style="width:12px; height:12px;"></i> 최근 검색
+              </span>
+              <div id="history-tags-box" style="display:flex; flex-wrap:wrap; gap:6px;"></div>
+            </div>
+          </div>
+
+          <!-- Character Info Summary Box (API Fetched) -->
+          <div id="character-info-card" class="glass-card" style="display:none; align-items:center; gap:16px; border-left:4px solid var(--success); background:linear-gradient(90deg, rgba(16, 185, 129, 0.05) 0%, var(--bg-card) 100%);">
+            <img id="char-avatar" src="" alt="avatar" style="width:60px; height:60px; border-radius:50%; object-fit:cover; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.1);" />
+            <div style="text-align:left; flex:1;">
+              <div id="char-server-class" style="font-size:0.8rem; color:var(--text-muted);">루페온 | 버서커</div>
+              <div id="char-name" style="font-size:1.1rem; font-weight:800; color:white;">주인공</div>
+              <div id="char-item-level" style="font-size:0.85rem; font-weight:600; color:var(--primary);">Item Lv. 1,640.00</div>
+            </div>
+          </div>
+
+          <!-- API Parsing Details Summary -->
+          <div id="api-parsing-details" class="glass-card" style="display:none; flex-direction:column; gap:12px; background:rgba(15, 23, 42, 0.4); border-color:rgba(255,255,255,0.05); text-align:left; padding:16px;">
+            <div style="font-size:0.9rem; font-weight:700; color:white; border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:6px; display:flex; align-items:center; gap:6px;">
+              <i data-lucide="database" style="color:var(--success); width:16px; height:16px;"></i> API 데이터 세부 분석
+            </div>
+            
+            <div style="display:flex; flex-direction:column; gap:8px; font-size:0.8rem; color:var(--text-secondary);">
+              <!-- WP% breakdown -->
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span>무공 증가율 (WP%)</span>
+                <span id="detail-wp-percent" style="font-weight:700; color:white;">0.00%</span>
+              </div>
+              <div id="detail-wp-breakdown" style="font-size:0.75rem; color:var(--text-muted); padding-left:8px; border-left:2px solid rgba(255,255,255,0.05); display:none; line-height:1.4;">
+              </div>
+
+              <!-- AP% breakdown -->
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
+                <span>기공 증가율 (AP%)</span>
+                <span id="detail-ap-percent" style="font-weight:700; color:white;">0.00%</span>
+              </div>
+              <div id="detail-ap-breakdown" style="font-size:0.75rem; color:var(--text-muted); padding-left:8px; border-left:2px solid rgba(255,255,255,0.05); display:none; line-height:1.4;">
+              </div>
+
+              <!-- Avatar breakdown -->
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
+                <span>아바타 & 펫 배수</span>
+                <span id="detail-avatar-mult" style="font-weight:700; color:white;">1.00배</span>
+              </div>
+              <div id="detail-avatar-breakdown" style="font-size:0.75rem; color:var(--text-muted); padding-left:8px; border-left:2px solid rgba(255,255,255,0.05); display:none; line-height:1.4;">
+              </div>
+
+              <!-- Flat WP breakdown -->
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
+                <span>기본 무공 (플랫)</span>
+                <span id="detail-flat-wp" style="font-weight:700; color:white;">0</span>
+              </div>
+              <div id="detail-flat-wp-breakdown" style="font-size:0.75rem; color:var(--text-muted); padding-left:8px; border-left:2px solid rgba(255,255,255,0.05); display:none; line-height:1.4;">
+              </div>
+            </div>
+          </div>
+
+          <!-- Manual Spec Override Card -->
+          <div class="glass-card" style="display:flex; flex-direction:column; gap:16px; text-align:left;">
+            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:8px; margin:0;">
+              <h3 style="margin:0; display:flex; align-items:center; gap:8px; font-size:1.125rem; font-weight:700; color:white;">
+                <i data-lucide="settings" style="color:var(--primary); width:18px; height:18px;"></i> 캐릭터 능력치 설정
+              </h3>
+              <div style="display:flex; align-items:center; gap:6px;">
+                <span id="edit-mode-badge" style="font-size:0.7rem; padding:3px 8px; border-radius:6px; background:rgba(255,255,255,0.05); border:1px solid var(--border-color); color:var(--text-secondary); font-weight:600; white-space:nowrap;">수동 편집 모드</span>
+                <button id="unlock-btn" class="btn-secondary" style="padding:4px 8px; font-size:0.7rem; border-radius:6px; display:none; white-space:nowrap;">수동 편집 전환</button>
+              </div>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:12px;">
+              <div>
+                <label for="input-base-ap">기본 공격력 (상세 정보창)</label>
+                <input type="number" id="input-base-ap" value="200000" />
+              </div>
+              <div>
+                <label for="input-cp">현재 캐릭터 전투력</label>
+                <input type="number" id="input-cp" value="6500" />
+              </div>
+              <div>
+                <label for="input-main-stat" id="label-main-stat">주스탯 (힘/민/지)</label>
+                <input type="number" id="input-main-stat" value="800000" />
+              </div>
+              <div>
+                <label for="input-weapon-power">무기 공격력</label>
+                <input type="number" id="input-weapon-power" value="250000" />
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Right: CP Prediction Dashboard, Sub Cards, Settings, Accordion -->
+        <div style="display:flex; flex-direction:column; gap:24px;">
+          
+          <!-- CP Dashboard Result Card -->
+          <div class="glass-card cp-dashboard">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <i data-lucide="sparkles" style="color:var(--success);"></i>
+              <span style="font-size:1.1rem; font-weight:700; color:var(--text-secondary); letter-spacing:0.05em;">전투력 예측 시뮬레이션</span>
+            </div>
+            
+            <div style="display:flex; flex-wrap:wrap; justify-content:center; align-items:baseline; gap:20px; margin:8px 0;">
+              <div style="display:flex; flex-direction:column; align-items:center;">
+                <span style="font-size:0.75rem; font-weight:600; color:var(--text-muted);">기존 전투력</span>
+                <span class="value-highlight" style="font-size:1.75rem;">
+                  <span id="output-cp-before">6,500</span><span class="unit-label">점</span>
+                </span>
+              </div>
+              
+              <div style="color:var(--success); font-weight:bold; font-size:1.2rem;">&rarr;</div>
+              
+              <div style="display:flex; flex-direction:column; align-items:center;">
+                <span style="font-size:0.75rem; font-weight:600; color:var(--success);">완갑 착용 후</span>
+                <span class="value-highlight" style="font-size:2.5rem; text-shadow:0 0 20px rgba(16, 185, 129, 0.4);">
+                  <span id="output-cp-after">7,573</span><span class="unit-label">점</span>
+                </span>
+              </div>
+            </div>
+
+            <div class="cp-badge">
+              <i data-lucide="trending-up" style="width:16px; height:16px;"></i>
+              <span id="output-cp-diff">+1,073점 상승</span>
+              <span id="output-cp-percent" style="font-size:0.85rem; font-weight:600; opacity:0.9; margin-left:4px;">(16.51%)</span>
+            </div>
+
+            <button id="copy-results-btn" class="btn-secondary" style="padding:8px 16px; font-size:0.8rem; border-radius:8px; margin-top:8px; width:100%; display:flex; justify-content:center; align-items:center; gap:6px; background:rgba(16, 185, 129, 0.1); border:1px solid rgba(16, 185, 129, 0.25); color:var(--success);">
+              <i data-lucide="copy" style="width:14px; height:14px;"></i> 결과 텍스트 복사
+            </button>
+          </div>
+
+          <!-- Secondary Sub-stat cards -->
+          <div class="stats-grid">
+            <!-- Base AP Card -->
+            <div class="glass-card" style="display:flex; flex-direction:column; gap:12px; text-align:left;">
+              <div style="display:flex; align-items:center; gap:8px; font-size:0.9rem; font-weight:700; color:var(--text-secondary);">
+                <i data-lucide="zap" style="color:var(--primary); width:16px; height:16px;"></i> 기본 공격력
+              </div>
+              <div style="display:flex; justify-content:space-between; align-items:baseline; margin-top:4px;">
+                <div>
+                  <span style="font-size:0.7rem; color:var(--text-muted); display:block;">변경 전</span>
+                  <span class="value-highlight" style="font-size:1.15rem;" id="sub-ap-before">200,000</span>
+                </div>
+                <div style="text-align:right;">
+                  <span style="font-size:0.7rem; color:var(--primary); display:block;">변경 후</span>
+                  <span class="value-highlight" style="font-size:1.35rem;" id="sub-ap-after">233,025</span>
+                </div>
+              </div>
+              <div style="border-top:1px solid rgba(255,255,255,0.04); padding-top:8px; display:flex; justify-content:space-between; font-size:0.8rem;">
+                <span style="color:var(--text-muted);">상승량</span>
+                <span id="sub-ap-diff" style="font-weight:700; color:var(--primary);">+33,025 (+16.51%)</span>
+              </div>
+            </div>
+
+            <!-- Main Stat Card -->
+            <div class="glass-card" style="display:flex; flex-direction:column; gap:12px; text-align:left;">
+              <div style="display:flex; align-items:center; gap:8px; font-size:0.9rem; font-weight:700; color:var(--text-secondary);">
+                <i data-lucide="dumbbell" style="color:var(--primary); width:16px; height:16px;"></i> 주스탯 (<span id="sub-mainstat-name">힘/민/지</span>)
+              </div>
+              <div style="display:flex; justify-content:space-between; align-items:baseline; margin-top:4px;">
+                <div>
+                  <span style="font-size:0.7rem; color:var(--text-muted); display:block;">변경 전</span>
+                  <span class="value-highlight" style="font-size:1.15rem;" id="sub-stat-before">800,000</span>
+                </div>
+                <div style="text-align:right;">
+                  <span style="font-size:0.7rem; color:var(--primary); display:block;">변경 후</span>
+                  <span class="value-highlight" style="font-size:1.35rem;" id="sub-stat-after">857,095</span>
+                </div>
+              </div>
+              <div style="border-top:1px solid rgba(255,255,255,0.04); padding-top:8px; display:flex; justify-content:space-between; font-size:0.8rem;">
+                <span style="color:var(--text-muted);">상승량</span>
+                <span id="sub-stat-diff" style="font-weight:700; color:var(--primary);">+57,095 (+7.14%)</span>
+              </div>
+            </div>
+
+            <!-- Weapon Power Card -->
+            <div class="glass-card" style="display:flex; flex-direction:column; gap:12px; text-align:left;">
+              <div style="display:flex; align-items:center; gap:8px; font-size:0.9rem; font-weight:700; color:var(--text-secondary);">
+                <i data-lucide="sword" style="color:var(--primary); width:16px; height:16px;"></i> 무기 공격력
+              </div>
+              <div style="display:flex; justify-content:space-between; align-items:baseline; margin-top:4px;">
+                <div>
+                  <span style="font-size:0.7rem; color:var(--text-muted); display:block;">변경 전</span>
+                  <span class="value-highlight" style="font-size:1.15rem;" id="sub-wp-before">250,000</span>
+                </div>
+                <div style="text-align:right;">
+                  <span style="font-size:0.7rem; color:var(--primary); display:block;">변경 후</span>
+                  <span class="value-highlight" style="font-size:1.35rem;" id="sub-wp-after">273,160</span>
+                </div>
+              </div>
+              <div style="border-top:1px solid rgba(255,255,255,0.04); padding-top:8px; display:flex; justify-content:space-between; font-size:0.8rem;">
+                <span style="color:var(--text-muted);">상승량</span>
+                <span id="sub-wp-diff" style="font-weight:700; color:var(--primary);">+23,160 (+9.26%)</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 내실 및 버프 비율 settings -->
+          <div class="glass-card" style="text-align:left; display:flex; flex-direction:column; gap:20px;">
+            <h3 style="border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:8px; margin:0;">
+              <i data-lucide="percent" style="color:var(--primary);"></i> 내실 및 버프 비율 (상세 분해용)
+            </h3>
+            
+            <div>
+              <!-- Avatar / Pet multiplier -->
+              <div class="slider-container">
+                <div class="slider-header">
+                  <span class="slider-label">아바타 & 펫 주스탯 증가율 (Avatar & Pet)</span>
+                  <span class="slider-value" id="val-avatar-multiplier">9% (나누기 1.09)</span>
+                </div>
+                <input type="range" id="slider-avatar-multiplier" min="1.00" max="1.15" step="0.01" value="1.09" />
+                <div style="font-size:0.75rem; color:var(--text-muted); marginTop:4px;">
+                  전압 8%, 펫 목장 1% 등 합연산으로 합산된 증가율입니다 (통상 9% = 1.09).
+                </div>
+              </div>
+
+              <!-- Weapon Power % -->
+              <div class="slider-container">
+                <div class="slider-header">
+                  <span class="slider-label">악세 & 카르마 무공 증가율 (Weapon Power %)</span>
+                  <span class="slider-value" id="val-wp-percent">+6.6% (나누기 1.066)</span>
+                </div>
+                <input type="range" id="slider-wp-percent" min="0.0" max="20.0" step="0.1" value="6.6" />
+                <div style="font-size:0.75rem; color:var(--text-muted); marginTop:4px;">
+                  팔찌(중) 옵션, 카르마 레벨 보너스 등으로 얻은 추가 무공%의 총합입니다.
+                </div>
+              </div>
+
+              <!-- Gems & Stone AP % -->
+              <div class="slider-container">
+                <div class="slider-header">
+                  <span class="slider-label">보석 & 어빌리티 스톤 기공 증가율 (AP %)</span>
+                  <span class="slider-value" id="val-ap-percent">+12.5%</span>
+                </div>
+                <input type="range" id="slider-ap-percent" min="0.0" max="30.0" step="0.5" value="12.5" />
+                <div style="font-size:0.75rem; color:var(--text-muted); marginTop:4px;">
+                  티어4 보석(공격력 노드) 및 9/7 어빌돌(기공 1.5% 등)로 획득한 기공 증가율입니다.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 완갑 스펙 settings -->
+          <div class="glass-card" style="text-align:left; display:flex; flex-direction:column; gap:20px;">
+            <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:10px; border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:8px;">
+              <h3 style="margin:0;"><i data-lucide="star" style="color:var(--secondary);"></i> 착용할 완갑(腕甲) 스펙 설정</h3>
+              <div style="display:flex; gap:6px;" id="preset-buttons-container">
+                <button class="btn-secondary active-preset" style="padding:6px 12px; font-size:0.75rem; border-radius:20px; background:var(--secondary); border-color:var(--secondary); color:white;" data-preset="preset21">21강 (공개 스펙)</button>
+                <button class="btn-secondary" style="padding:6px 12px; font-size:0.75rem; border-radius:20px;" data-preset="custom">직접 입력 (Custom)</button>
+              </div>
+            </div>
+
+            <div>
+              <!-- Vambrace Main Stat -->
+              <div class="slider-container">
+                <div class="slider-header">
+                  <span class="slider-label">완갑 주스탯 추가 (힘/민/지)</span>
+                  <span class="slider-value" id="val-vambrace-main">+52,381</span>
+                </div>
+                <input type="range" id="slider-vambrace-main" min="0" max="100000" step="500" value="52381" />
+              </div>
+
+              <!-- Vambrace Weapon Power -->
+              <div class="slider-container">
+                <div class="slider-header">
+                  <span class="slider-label">완갑 무기 공격력 추가 (무공)</span>
+                  <span class="slider-value" id="val-vambrace-wp">+21,726</span>
+                </div>
+                <input type="range" id="slider-vambrace-wp" min="0" max="50000" step="250" value="21726" />
+              </div>
+
+              <!-- Vambrace Base AP -->
+              <div class="slider-container">
+                <div class="slider-header">
+                  <span class="slider-label">완갑 기본 공격력 추가 (플랫 기본공)</span>
+                  <span class="slider-value" id="val-vambrace-baseap">+5,980</span>
+                </div>
+                <input type="range" id="slider-vambrace-baseap" min="0" max="15000" step="50" value="5980" />
+              </div>
+
+              <!-- Vambrace AP % -->
+              <div class="slider-container">
+                <div class="slider-header">
+                  <span class="slider-label">완갑 기본 공격력 % 추가 (기공 %)</span>
+                  <span class="slider-value" id="val-vambrace-ap-percent">+2%</span>
+                </div>
+                <input type="range" id="slider-vambrace-ap-percent" min="0.0" max="5.0" step="0.1" value="2.0" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Mathematical Trace details -->
+          <div class="glass-card" style="padding:16px;">
+            <button id="toggle-accordion" class="accordion-btn">
+              <span style="display:flex; align-items:center; gap:8px;">
+                <i data-lucide="info" style="color:var(--primary); width:16px; height:16px;"></i>
+                상세 계산 공식 과정 보기
+              </span>
+              <i data-lucide="chevron-down" id="accordion-chevron" style="width:18px; height:18px;"></i>
+            </button>
+            
+            <div id="accordion-content" class="accordion-content">
+              <div id="math-trace-container" style="display:flex; flex-direction:column; gap:20px;">
+                <!-- Generated dynamically in JavaScript -->
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+      
+      <footer style="margin-top:40px; padding:20px 0; border-top:1px solid rgba(255,255,255,0.05); font-size:0.8rem; color:var(--text-muted); text-align:center; display:flex; flex-direction:column; gap:6px;">
+        <p>&copy; 2026 완갑 전투력 계산기. All math matches community data formulas.</p>
+        <p style="font-size:0.75rem;">
+          공식 출처: <a href="https://m.inven.co.kr/board/lostark/6271/3790814" target="_blank" rel="noopener noreferrer" style="color:var(--primary); text-decoration:underline;">로스트아크 인벤 (완갑 전투력 증가량 계산기 공식)</a>
+        </p>
+      </footer>
+    </div>
+
+    <!-- Interactive script -->
+    <script>
+      // Presets (Only +21 is officially released/confirmed)
+      const PRESETS = {
+        preset21: { mainStat: 52381, weaponPower: 21726, baseAp: 5980, apPercent: 2.0 }
+      };
+
+      // Current State variables
+      let charMainStatName = '힘/민/지';
+      let searchHistory = [];
+      let lastFetchedData = null;
+
+      // DOM Elements
+      const inputBaseAp = document.getElementById('input-base-ap');
+      const inputCp = document.getElementById('input-cp');
+      const inputMainStat = document.getElementById('input-main-stat');
+      const labelMainStat = document.getElementById('label-main-stat');
+      const inputWeaponPower = document.getElementById('input-weapon-power');
+
+      const editModeBadge = document.getElementById('edit-mode-badge');
+      const unlockBtn = document.getElementById('unlock-btn');
+
+      // API parsing details DOM elements
+      const apiParsingDetails = document.getElementById('api-parsing-details');
+      const detailWpPercent = document.getElementById('detail-wp-percent');
+      const detailWpBreakdown = document.getElementById('detail-wp-breakdown');
+      const detailApPercent = document.getElementById('detail-ap-percent');
+      const detailApBreakdown = document.getElementById('detail-ap-breakdown');
+      const detailAvatarMult = document.getElementById('detail-avatar-mult');
+      const detailAvatarBreakdown = document.getElementById('detail-avatar-breakdown');
+      const detailFlatWp = document.getElementById('detail-flat-wp');
+      const detailFlatWpBreakdown = document.getElementById('detail-flat-wp-breakdown');
+
+      const sliderAvatarMult = document.getElementById('slider-avatar-multiplier');
+      const sliderWpPercent = document.getElementById('slider-wp-percent');
+      const sliderApPercent = document.getElementById('slider-ap-percent');
+
+      const sliderVambraceMain = document.getElementById('slider-vambrace-main');
+      const sliderVambraceWp = document.getElementById('slider-vambrace-wp');
+      const sliderVambraceBaseAp = document.getElementById('slider-vambrace-baseap');
+      const sliderVambraceApPercent = document.getElementById('slider-vambrace-ap-percent');
+
+      // Value label outputs
+      const lblAvatarMult = document.getElementById('val-avatar-multiplier');
+      const lblWpPercent = document.getElementById('val-wp-percent');
+      const lblApPercent = document.getElementById('val-ap-percent');
+      const lblVambraceMain = document.getElementById('val-vambrace-main');
+      const lblVambraceWp = document.getElementById('val-vambrace-wp');
+      const lblVambraceBaseAp = document.getElementById('val-vambrace-baseap');
+      const lblVambraceApPercent = document.getElementById('val-vambrace-ap-percent');
+
+      // Results display
+      const outCpBefore = document.getElementById('output-cp-before');
+      const outCpAfter = document.getElementById('output-cp-after');
+      const outCpDiff = document.getElementById('output-cp-diff');
+      const outCpPercent = document.getElementById('output-cp-percent');
+
+      const subApBefore = document.getElementById('sub-ap-before');
+      const subApAfter = document.getElementById('sub-ap-after');
+      const subApDiff = document.getElementById('sub-ap-diff');
+
+      const subMainstatName = document.getElementById('sub-mainstat-name');
+      const subStatBefore = document.getElementById('sub-stat-before');
+      const subStatAfter = document.getElementById('sub-stat-after');
+      const subStatDiff = document.getElementById('sub-stat-diff');
+
+      const subWpBefore = document.getElementById('sub-wp-before');
+      const subWpAfter = document.getElementById('sub-wp-after');
+      const subWpDiff = document.getElementById('sub-wp-diff');
+
+      // Math Trace Elements
+      const mathTraceContainer = document.getElementById('math-trace-container');
+      const copyResultsBtn = document.getElementById('copy-results-btn');
+
+      // Helper function to format numbers
+      function format(val, dec = 0) {
+        return Number(val).toLocaleString('ko-KR', {
+          minimumFractionDigits: dec,
+          maximumFractionDigits: dec
+        });
+      }
+
+      // Main calculation function
+      function calculate() {
+        const baseApBeforeVal = parseFloat(inputBaseAp.value) || 0;
+        const combatPowerBeforeVal = parseFloat(inputCp.value) || 0;
+        const mainStatBeforeVal = parseFloat(inputMainStat.value) || 0;
+        const weaponPowerBeforeVal = parseFloat(inputWeaponPower.value) || 0;
+
+        const avatarMultiplierVal = parseFloat(sliderAvatarMult.value) || 1.09;
+        const weaponPowerPercentVal = parseFloat(sliderWpPercent.value) || 6.6;
+        const apPercentBeforeVal = parseFloat(sliderApPercent.value) || 12.5;
+
+        const vambraceMainStatVal = parseFloat(sliderVambraceMain.value) || 0;
+        const vambraceWeaponPowerVal = parseFloat(sliderVambraceWp.value) || 0;
+        const vambraceBaseApVal = parseFloat(sliderVambraceBaseAp.value) || 0;
+        const vambraceApPercentVal = parseFloat(sliderVambraceApPercent.value) || 0;
+
+        // 1. CP Constant Before
+        const constantBefore = (baseApBeforeVal * 288) / 100000;
+
+        // 2. CP Multiplier (Net Value multiplier)
+        const multiplier = constantBefore > 0 ? (combatPowerBeforeVal / constantBefore) : 0;
+
+        // 3. Stat division and summation
+        const baseMainStat = Math.round(mainStatBeforeVal / avatarMultiplierVal);
+        const newMainStat = Math.floor((baseMainStat + vambraceMainStatVal) * avatarMultiplierVal);
+
+        // 4. Weapon Power division and summation
+        const wpDivisor = 1 + (weaponPowerPercentVal / 100);
+        const baseWeaponPower = Math.round(weaponPowerBeforeVal / wpDivisor);
+        const newWeaponPower = Math.floor((baseWeaponPower + vambraceWeaponPowerVal) * wpDivisor);
+
+        // 5. New raw base AP (floored)
+        const newRawBaseAp = Math.floor(Math.sqrt((newMainStat * newWeaponPower) / 6));
+
+        // 6. New final base AP
+        const totalApPercentMultiplier = 1 + ((apPercentBeforeVal + vambraceApPercentVal) / 100);
+        const newFinalBaseAp = Math.floor((newRawBaseAp + vambraceBaseApVal) * totalApPercentMultiplier);
+
+        // 7. New constant
+        const newConstant = (newFinalBaseAp * 288) / 100000;
+
+        // 8. New Combat Power
+        const newCombatPower = Math.floor(newConstant * multiplier);
+
+        // 9. Increase
+        const diff = newCombatPower - combatPowerBeforeVal;
+        const percentChange = combatPowerBeforeVal > 0 ? ((diff / combatPowerBeforeVal) * 100).toFixed(2) : '0.00';
+
+        // DOM Updates
+        outCpBefore.textContent = format(combatPowerBeforeVal);
+        outCpAfter.textContent = format(newCombatPower);
+        outCpDiff.textContent = `+${format(diff)}점 상승`;
+        outCpPercent.textContent = `(${percentChange}%)`;
+
+        // Sub cards DOM Updates
+        subApBefore.textContent = format(baseApBeforeVal);
+        subApAfter.textContent = format(newFinalBaseAp);
+        const apDiff = newFinalBaseAp - baseApBeforeVal;
+        subApDiff.textContent = `+${format(apDiff)} (${percentChange}%)`;
+
+        subMainstatName.textContent = charMainStatName;
+        subStatBefore.textContent = format(mainStatBeforeVal);
+        subStatAfter.textContent = format(newMainStat);
+        const statDiff = newMainStat - mainStatBeforeVal;
+        const statPct = mainStatBeforeVal > 0 ? ((statDiff / mainStatBeforeVal) * 100).toFixed(2) : '0.00';
+        subStatDiff.textContent = `+${format(statDiff)} (${statPct}%)`;
+
+        subWpBefore.textContent = format(weaponPowerBeforeVal);
+        subWpAfter.textContent = format(newWeaponPower);
+        const wpDiff = newWeaponPower - weaponPowerBeforeVal;
+        const wpPct = weaponPowerBeforeVal > 0 ? ((wpDiff / weaponPowerBeforeVal) * 100).toFixed(2) : '0.00';
+        subWpDiff.textContent = `+${format(wpDiff)} (${wpPct}%)`;
+
+        // Math Trace DOM Updates
+        updateMathTrace(
+          baseApBeforeVal,
+          combatPowerBeforeVal,
+          mainStatBeforeVal,
+          weaponPowerBeforeVal,
+          avatarMultiplierVal,
+          weaponPowerPercentVal,
+          apPercentBeforeVal,
+          vambraceMainStatVal,
+          vambraceWeaponPowerVal,
+          vambraceBaseApVal,
+          vambraceApPercentVal,
+          constantBefore,
+          multiplier,
+          baseMainStat,
+          newMainStat,
+          wpDivisor,
+          baseWeaponPower,
+          newWeaponPower,
+          newRawBaseAp,
+          totalApPercentMultiplier,
+          newFinalBaseAp,
+          newConstant,
+          newCombatPower,
+          diff
+        );
+      }
+
+      // 9-step Math Trace Renderer
+      function updateMathTrace(
+        baseApBefore, cpBefore, mainStatBefore, wpBefore,
+        avatarMult, wpPercent, apPercentBefore,
+        vambraceMain, vambraceWp, vambraceFlatAp, vambraceApPercent,
+        constantBefore, multiplier,
+        baseMainStat, newMainStat,
+        wpDivisor, baseWeaponPower, newWeaponPower,
+        newRawBaseAp, totalApPercentMultiplier, newFinalBaseAp,
+        newConstant, newCombatPower, diff
+      ) {
+        if (!mathTraceContainer) return;
+        
+        const totalApPercent = apPercentBefore + vambraceApPercent;
+        
+        mathTraceContainer.innerHTML = `
+          <!-- 1단계 -->
+          <div>
+            <h4 style="color:white; font-weight:600; margin-bottom:6px;">1단계: 현재 전투력 상수 계산</h4>
+            <p style="font-size:0.85rem; margin-bottom:4px; color:var(--text-secondary);">공식: 현재 캐릭터 기본공격력 &times; 288 &div; 100,000</p>
+            <div class="math-trace-box">
+              <span style="color:var(--text-muted);">대입:</span> ${format(baseApBefore)} &times; 288 &div; 100,000 = <strong style="color:var(--primary);">${format(constantBefore, 5)}</strong>
+            </div>
+          </div>
+
+          <!-- 2단계 -->
+          <div>
+            <h4 style="color:white; font-weight:600; margin-bottom:6px;">2단계: 현재 전투력 증가 배율 계산</h4>
+            <p style="font-size:0.85rem; margin-bottom:4px; color:var(--text-secondary);">공식: 현재 전투력 &div; 현재 전투력 상수</p>
+            <div class="math-trace-box">
+              <span style="color:var(--text-muted);">대입:</span> ${format(cpBefore)} &div; ${format(constantBefore, 5)} = <strong style="color:var(--primary);">${format(multiplier, 6)}배</strong>
+            </div>
+          </div>
+
+          <!-- 3단계 -->
+          <div>
+            <h4 style="color:white; font-weight:600; margin-bottom:6px;">3단계: 힘/민/지 분해 및 합산</h4>
+            <p style="font-size:0.85rem; margin-bottom:4px; color:var(--text-secondary);">공식: (현재 주스탯 &div; 아바타배율 + 완갑 증가량) &times; 아바타배율</p>
+            <div class="math-trace-box">
+              <span style="color:var(--text-muted);">순수 스탯:</span> ${format(mainStatBefore)} &div; ${avatarMult} = ${format(baseMainStat)} <br />
+              <span style="color:var(--text-muted);">완갑 합산:</span> (${format(baseMainStat)} + ${format(vambraceMain)}) &times; ${avatarMult} = <strong style="color:var(--primary);">${format(newMainStat)}</strong>
+            </div>
+          </div>
+
+          <!-- 4단계 -->
+          <div>
+            <h4 style="color:white; font-weight:600; margin-bottom:6px;">4단계: 무공 분해 및 합산</h4>
+            <p style="font-size:0.85rem; margin-bottom:4px; color:var(--text-secondary);">공식: (현재 무공 &div; 무공배율 + 완갑 무공 증가량) &times; 무공배율</p>
+            <div class="math-trace-box">
+              <span style="color:var(--text-muted);">무공배율:</span> 1 + ${wpPercent}% = ${wpDivisor.toFixed(4)} <br />
+              <span style="color:var(--text-muted);">순수 무공:</span> ${format(wpBefore)} &div; ${wpDivisor.toFixed(4)} = ${format(baseWeaponPower)} <br />
+              <span style="color:var(--text-muted);">완갑 합산:</span> (${format(baseWeaponPower)} + ${format(vambraceWp)}) &times; ${wpDivisor.toFixed(4)} = <strong style="color:var(--primary);">${format(newWeaponPower)}</strong>
+            </div>
+          </div>
+
+          <!-- 5단계 -->
+          <div>
+            <h4 style="color:white; font-weight:600; margin-bottom:6px;">5단계: 완갑 적용 후 기본공격력 1차 계산</h4>
+            <p style="font-size:0.85rem; margin-bottom:4px; color:var(--text-secondary);">공식: &radic;(완갑 적용 후 주스탯 &times; 완갑 적용 후 무공 &div; 6) (소수점 버림)</p>
+            <div class="math-trace-box">
+              <span style="color:var(--text-muted);">대입:</span> &radic;(${format(newMainStat)} &times; ${format(newWeaponPower)} &div; 6) = &radic;(${format(newMainStat * newWeaponPower)} &div; 6) = <strong style="color:var(--primary);">${format(newRawBaseAp)}</strong>
+            </div>
+          </div>
+
+          <!-- 6단계 -->
+          <div>
+            <h4 style="color:white; font-weight:600; margin-bottom:6px;">6단계: 최종 기본공격력 계산 (고정/비율 적용)</h4>
+            <p style="font-size:0.85rem; margin-bottom:4px; color:var(--text-secondary);">공식: (1차 기본공격력 + 완갑 고정증가) &times; (1 + 전체 기공% 증가율 &div; 100) (소수점 버림)</p>
+            <div class="math-trace-box">
+              <span style="color:var(--text-muted);">전체 기공%:</span> 보석(${(apPercentBefore - 1.5).toFixed(2)}%) + 돌(1.50%) + 완갑(${vambraceApPercent}%) = ${totalApPercent.toFixed(2)}% <br />
+              <span style="color:var(--text-muted);">대입:</span> (${format(newRawBaseAp)} + ${format(vambraceFlatAp)}) &times; ${totalApPercentMultiplier.toFixed(4)} = <strong style="color:var(--success);">${format(newFinalBaseAp)}</strong>
+            </div>
+          </div>
+
+          <!-- 7단계 -->
+          <div>
+            <h4 style="color:white; font-weight:600; margin-bottom:6px;">7단계: 완갑 적용 후 전투력 상수 계산</h4>
+            <p style="font-size:0.85rem; margin-bottom:4px; color:var(--text-secondary);">공식: 최종 기본공격력 &times; 288 &div; 100,000</p>
+            <div class="math-trace-box">
+              <span style="color:var(--text-muted);">대입:</span> ${format(newFinalBaseAp)} &times; 288 &div; 100,000 = <strong style="color:var(--primary);">${format(newConstant, 5)}</strong>
+            </div>
+          </div>
+
+          <!-- 8단계 -->
+          <div>
+            <h4 style="color:white; font-weight:600; margin-bottom:6px;">8단계: 최종 예상 전투력 계산</h4>
+            <p style="font-size:0.85rem; margin-bottom:4px; color:var(--text-secondary);">공식: 완갑 적용 후 전투력 상수 &times; 현재 전투력 증가 배율 (소수점 버림)</p>
+            <div class="math-trace-box">
+              <span style="color:var(--text-muted);">대입:</span> ${format(newConstant, 5)} &times; ${format(multiplier, 6)} = <strong style="color:var(--success);">${format(newCombatPower)}</strong>
+            </div>
+          </div>
+
+          <!-- 9단계 -->
+          <div>
+            <h4 style="color:white; font-weight:600; margin-bottom:6px;">9단계: 전투력 증가량 계산</h4>
+            <p style="font-size:0.85rem; margin-bottom:4px; color:var(--text-secondary);">공식: 최종 예상 전투력 - 현재 전투력</p>
+            <div class="math-trace-box">
+              <span style="color:var(--text-muted);">대입:</span> ${format(newCombatPower)} - ${format(cpBefore)} = <strong style="color:var(--success);">+${format(diff)}점 상승! (${(cpBefore > 0 ? (diff / cpBefore * 100) : 0).toFixed(2)}%)</strong>
+            </div>
+          </div>
+        `;
+      }
+
+      // Slider label synchronizers
+      sliderAvatarMult.addEventListener('input', () => {
+        const val = parseFloat(sliderAvatarMult.value);
+        lblAvatarMult.textContent = `${Math.round((val - 1) * 100)}% (나누기 ${val})`;
+        calculate();
+      });
+
+      sliderWpPercent.addEventListener('input', () => {
+        const val = parseFloat(sliderWpPercent.value);
+        lblWpPercent.textContent = `+${val}% (나누기 ${(1 + val/100).toFixed(3)})`;
+        calculate();
+      });
+
+      sliderApPercent.addEventListener('input', () => {
+        lblApPercent.textContent = `+${sliderApPercent.value}%`;
+        calculate();
+      });
+
+      function syncVambraceSliders() {
+        lblVambraceMain.textContent = `+${parseInt(sliderVambraceMain.value).toLocaleString()}`;
+        lblVambraceWp.textContent = `+${parseInt(sliderVambraceWp.value).toLocaleString()}`;
+        lblVambraceBaseAp.textContent = `+${parseInt(sliderVambraceBaseAp.value).toLocaleString()}`;
+        lblVambraceApPercent.textContent = `+${sliderVambraceApPercent.value}%`;
+      }
+
+      // Sliders event listeners (Forces custom preset)
+      [sliderVambraceMain, sliderVambraceWp, sliderVambraceBaseAp, sliderVambraceApPercent].forEach(slider => {
+        slider.addEventListener('input', () => {
+          syncVambraceSliders();
+          setActivePresetButton('custom');
+          calculate();
+        });
+      });
+
+      // Presets logic
+      const presetButtons = document.querySelectorAll('#preset-buttons-container button');
+      presetButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const presetName = btn.getAttribute('data-preset');
+          setActivePresetButton(presetName);
+          if (presetName !== 'custom') {
+            const data = PRESETS[presetName];
+            sliderVambraceMain.value = data.mainStat;
+            sliderVambraceWp.value = data.weaponPower;
+            sliderVambraceBaseAp.value = data.baseAp;
+            sliderVambraceApPercent.value = data.apPercent;
+            syncVambraceSliders();
+            calculate();
+          }
+        });
+      });
+
+      function setActivePresetButton(presetName) {
+        presetButtons.forEach(btn => {
+          if (btn.getAttribute('data-preset') === presetName) {
+            btn.style.background = 'var(--secondary)';
+            btn.style.borderColor = 'var(--secondary)';
+            btn.style.color = 'white';
+          } else {
+            btn.style.background = 'rgba(255, 255, 255, 0.06)';
+            btn.style.borderColor = 'var(--border-color)';
+            btn.style.color = 'var(--text-secondary)';
+          }
+        });
+      }
+
+      // Manual Inputs listeners
+      [inputBaseAp, inputCp, inputMainStat, inputWeaponPower].forEach(input => {
+        input.addEventListener('input', calculate);
+      });
+
+      // Accordion
+      const accordionBtn = document.getElementById('toggle-accordion');
+      const accordionContent = document.getElementById('accordion-content');
+      const accordionChevron = document.getElementById('accordion-chevron');
+      accordionBtn.addEventListener('click', () => {
+        const isOpen = accordionContent.classList.toggle('open');
+        accordionChevron.style.transform = isOpen ? 'rotate(180deg)' : 'rotate(0deg)';
+      });
+
+      // Copy Results to Clipboard
+      if (copyResultsBtn) {
+        copyResultsBtn.addEventListener('click', () => {
+          const cpBefore = parseInt(inputCp.value) || 0;
+          const apBefore = parseInt(inputBaseAp.value) || 0;
+          
+          const cpAfter = parseInt(outCpAfter.textContent.replace(/,/g, '')) || 0;
+          const cpDiffText = outCpDiff.textContent; 
+          const cpPctText = outCpPercent.textContent; 
+          const apAfter = parseInt(subApAfter.textContent.replace(/,/g, '')) || 0;
+          
+          const textBlock = `• 현재 전투력: ${cpBefore.toLocaleString()}
+• 완갑 적용 후 예상 전투력: ${cpAfter.toLocaleString()}
+• 예상 전투력 증가량: ${cpDiffText.replace('점 상승', '')}
+• 현재 기본공격력: ${apBefore.toLocaleString()}
+• 완갑 적용 후 예상 기본공격력: ${apAfter.toLocaleString()}
+• 계산상 전투력 증가율: ${cpPctText.replace(/[()]/g, '')}
+• 주의사항: 캐릭터별 세부 보정, 반올림 방식, 게임 내 실제 적용 방식에 따라 오차가 있을 수 있음.`;
+
+          navigator.clipboard.writeText(textBlock).then(() => {
+            const originalHTML = copyResultsBtn.innerHTML;
+            copyResultsBtn.innerHTML = '<i data-lucide="check" style="width:14px; height:14px;"></i> 복사 완료!';
+            lucide.createIcons();
+            setTimeout(() => {
+              copyResultsBtn.innerHTML = originalHTML;
+              lucide.createIcons();
+            }, 2000);
+          }).catch(err => {
+            console.error('Failed to copy results:', err);
+            alert('복사에 실패했습니다. 수동으로 복사해 주세요.');
+          });
+        });
+      }
+
+      // API Key Panels
+      const toggleKeyBtn = document.getElementById('toggle-key-btn');
+      const keyPanel = document.getElementById('key-input-panel');
+      const apiKeyField = document.getElementById('api-key-field');
+      const saveKeyBtn = document.getElementById('save-key-btn');
+
+      toggleKeyBtn.addEventListener('click', () => {
+        keyPanel.style.display = keyPanel.style.display === 'none' ? 'flex' : 'none';
+      });
+
+      saveKeyBtn.addEventListener('click', () => {
+        const val = apiKeyField.value.trim();
+        if (val) {
+          localStorage.setItem('lostark_api_key', val);
+          toggleKeyBtn.innerHTML = '<i data-lucide="check" style="width:12px; height:12px; color:var(--success);"></i> API 키 등록됨';
+        } else {
+          localStorage.removeItem('lostark_api_key');
+          toggleKeyBtn.innerHTML = '<i data-lucide="key" style="width:12px; height:12px;"></i> API 키 설정';
+        }
+        lucide.createIcons();
+        keyPanel.style.display = 'none';
+      });
+
+      // Load API Key on Load
+      const savedKey = localStorage.getItem('lostark_api_key');
+      if (savedKey) {
+        apiKeyField.value = savedKey;
+        toggleKeyBtn.innerHTML = '<i data-lucide="check" style="width:12px; height:12px; color:var(--success);"></i> API 키 등록됨';
+      }
+
+      // API Search logic
+      const searchForm = document.getElementById('search-form');
+      const charNameField = document.getElementById('character-name-field');
+      const errorBox = document.getElementById('search-error-box');
+      const infoCard = document.getElementById('character-info-card');
+      const charAvatar = document.getElementById('char-avatar');
+      const charServerClass = document.getElementById('char-server-class');
+      const charName = document.getElementById('char-name');
+      const charItemLevel = document.getElementById('char-item-level');
+      const searchBtnText = document.getElementById('search-btn-text');
+
+      // Helper to traverse object recursively
+      function findValueByKeyphrase(obj, keyphrase) {
+        if (typeof obj === 'string') {
+          if (obj.includes(keyphrase)) return obj;
+        } else if (typeof obj === 'object' && obj !== null) {
+          for (const key in obj) {
+            const result = findValueByKeyphrase(obj[key], keyphrase);
+            if (result) return result;
+          }
+        }
+        return null;
+      }
+
+      searchForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const name = charNameField.value.trim();
+        if (!name) return;
+
+        const token = localStorage.getItem('lostark_api_key');
+        if (!token) {
+          errorBox.textContent = 'API 키가 필요합니다. 상단의 [API 키 설정] 버튼을 클릭해 JWT 토큰을 등록해 주세요.';
+          errorBox.style.display = 'block';
+          return;
+        }
+
+        errorBox.style.display = 'none';
+        if (apiParsingDetails) apiParsingDetails.style.display = 'none';
+        searchBtnText.innerHTML = '<i data-lucide="loader" class="animate-spin" style="width:14px; height:14px;"></i> 조회중';
+        lucide.createIcons();
+
+        try {
+          const headers = {
+            'accept': 'application/json',
+            'authorization': `bearer ${token}`
+          };
+
+          // Try concurrent fetches directly (relies on browser CORS extension)
+          const [profRes, equipRes, avatarRes, gemRes, passiveRes] = await Promise.all([
+            fetch(`https://developer-lostark.game.onstove.com/armories/characters/${encodeURIComponent(name)}/profiles`, { headers }),
+            fetch(`https://developer-lostark.game.onstove.com/armories/characters/${encodeURIComponent(name)}/equipment`, { headers }),
+            fetch(`https://developer-lostark.game.onstove.com/armories/characters/${encodeURIComponent(name)}/avatars`, { headers }),
+            fetch(`https://developer-lostark.game.onstove.com/armories/characters/${encodeURIComponent(name)}/gems`, { headers }),
+            fetch(`https://developer-lostark.game.onstove.com/armories/characters/${encodeURIComponent(name)}/arkpassive`, { headers })
+          ]);
+
+          if (profRes.status === 401) {
+            throw new Error('API 키가 올바르지 않습니다. 다시 확인해 주세요 (401 Unauthorized).');
+          }
+          if (profRes.status === 404) {
+            throw new Error('해당 캐릭터를 찾을 수 없습니다.');
+          }
+          if (!profRes.ok) {
+            throw new Error(`API 통신 실패 (HTTP ${profRes.status})`);
+          }
+
+          const profile = await profRes.json();
+          const equipment = await equipRes.json();
+          
+          let avatars = null;
+          try {
+            if (avatarRes && avatarRes.ok) {
+              avatars = await avatarRes.json();
+            }
+          } catch (e) {
+            console.error("Avatar fetch parsing failed:", e);
+          }
+
+          let gems = null;
+          try {
+            if (gemRes && gemRes.ok) {
+              gems = await gemRes.json();
+            }
+          } catch (e) {
+            console.error("Gems fetch parsing failed:", e);
+          }
+
+          let arkpassive = null;
+          try {
+            if (passiveRes && passiveRes.ok) {
+              arkpassive = await passiveRes.json();
+            }
+          } catch (e) {
+            console.error("ArkPassive fetch parsing failed:", e);
+          }
+
+          if (!profile) {
+            throw new Error('API 데이터가 비어 있습니다.');
+          }
+
+          // Parse and populate
+          lastFetchedData = { profile, equipment, avatars, gems, arkpassive };
+          parseAndPopulate(profile, equipment, avatars, gems, arkpassive);
+          saveSearchHistory(name);
+        } catch (err) {
+          console.error(err);
+          let errMsg = err.message;
+          if (err instanceof TypeError && err.message.includes('Failed to fetch')) {
+            errMsg = 'CORS 에러 발생! 브라우저가 Lost Ark API와의 통신을 차단했습니다. 상단의 CORS 안내에 따라 브라우저에 CORS 우회 플러그인(익스텐션)을 활성화하거나 수동 입력을 이용해 주세요.';
+          }
+          errorBox.textContent = errMsg;
+          errorBox.style.display = 'block';
+        } finally {
+          searchBtnText.textContent = '조회';
+          lucide.createIcons();
+        }
+      });
+
+      function parseAndPopulate(profile, equipment, avatars, gems, arkpassive) {
+        console.log("=== Lost Ark OpenAPI Debug Output ===");
+        console.log("1. Profile response payload:", profile);
+        console.log("2. Stats list inside profile:", profile?.Stats);
+        console.log("3. Equipment response payload:", equipment);
+        console.log("4. Avatars response payload:", avatars);
+        console.log("5. Gems response payload:", gems);
+        console.log("6. ArkPassive response payload:", arkpassive);
+
+        // Search API response for target value 742775 (user's main stat) to locate its JSON path
+        const targetSearchStat = 742775;
+        console.log(`Searching API responses for value: ${targetSearchStat}...`);
+        
+        function findValueInObj(obj, targetVal, path = '') {
+          if (obj === targetVal || String(obj).replace(/,/g, '') === String(targetVal)) {
+            console.log(`%c[FOUND VALUE] ${targetVal} at path: ${path}`, 'background: #10b981; color: white; padding: 2px 6px; border-radius: 4px; font-weight: bold;');
+          }
+          if (typeof obj === 'object' && obj !== null) {
+            for (const key in obj) {
+              findValueInObj(obj[key], targetVal, path ? `${path}.${key}` : key);
+            }
+          }
+        }
+        findValueInObj(profile, targetSearchStat, 'profile');
+        findValueInObj(equipment, targetSearchStat, 'equipment');
+        if (avatars) findValueInObj(avatars, targetSearchStat, 'avatars');
+        if (gems) findValueInObj(gems, targetSearchStat, 'gems');
+        if (arkpassive) findValueInObj(arkpassive, targetSearchStat, 'arkpassive');
+
+        // 1. Basic info
+        charAvatar.src = profile.CharacterImage || '';
+        charAvatar.style.display = profile.CharacterImage ? 'block' : 'none';
+        charServerClass.textContent = `${profile.ServerName || '서버'} | ${profile.CharacterClassName || '클래스'}`;
+        charName.textContent = profile.CharacterName || '';
+        charItemLevel.textContent = `Item Lv. ${profile.ItemAvgLevel || '0.00'} (Lv. ${profile.CharacterLevel || 0})`;
+        infoCard.style.display = 'flex';
+
+        // 2. Combat Power (전투력)
+        let combatPower = 0;
+        if (profile.CombatPower) {
+          combatPower = parseInt(String(profile.CombatPower).replace(/,/g, ''), 10);
+        } else {
+          const cpStat = profile.Stats?.find(s => s.Type === '전투력');
+          if (cpStat) {
+            combatPower = parseInt(String(cpStat.Value).replace(/,/g, ''), 10);
+          }
+        }
+        inputCp.value = combatPower || 6500;
+
+        // 3. Attack Power (공격력) -> parse 기본 공격력 from tooltip
+        let baseAp = 0;
+        const apStat = profile.Stats?.find(s => s.Type === '공격력');
+        if (apStat && apStat.Tooltip) {
+          const tooltipText = apStat.Tooltip.join('\n');
+          const cleanText = tooltipText.replace(/<[^>]*>?/gm, '');
+          const match = cleanText.match(/기본\s*공격력(?:은|\s)*(?:\+|\s)*([\d,]+)/);
+          if (match) {
+            baseAp = parseInt(match[1].replace(/,/g, ''), 10);
+          } else {
+            baseAp = parseInt(String(apStat.Value).replace(/,/g, ''), 10);
+          }
+        }
+        inputBaseAp.value = baseAp || 200000;
+
+        // 4. Weapon Power -> Find Type: 무기, parse 무기 공격력, plus parse flat weapon power bonuses (e.g. from bracelet)
+        let wpVal = 0;
+        let flatWpBonus = 0;
+        if (equipment && Array.isArray(equipment)) {
+          const weapon = equipment.find(item => item.Type === '무기');
+          if (weapon && weapon.Tooltip) {
+            try {
+              const tooltipObj = JSON.parse(weapon.Tooltip);
+              const wpString = findValueByKeyphrase(tooltipObj, '무기 공격력');
+              if (wpString) {
+                const cleanWp = wpString.replace(/<[^>]*>?/gm, '');
+                const wpMatch = cleanWp.match(/무기\s*공격력\s*(?:\+|\s)*([\d,]+)/);
+                if (wpMatch) {
+                  wpVal = parseInt(wpMatch[1].replace(/,/g, ''), 10);
+                }
+              }
+            } catch (e) {
+              console.error(e);
+            }
+          }
+
+          // Scan other items (specifically bracelet) for flat weapon power bonuses (ignores minor accessory polish stats like +1)
+          equipment.forEach(item => {
+            if (item.Type === '팔찌' && item.Tooltip) {
+              const cleanText = item.Tooltip.replace(/<[^>]*>?/gm, '');
+              const matches = cleanText.match(/무기\s*공격력\s*\+\s*([\d,]+)(?!%)/g);
+              if (matches) {
+                matches.forEach(m => {
+                  const parts = m.match(/무기\s*공격력\s*\+\s*([\d,]+)/);
+                  if (parts) flatWpBonus += parseInt(parts[1].replace(/,/g, ''), 10);
+                });
+              }
+            }
+          });
+        }
+        const totalWpVal = wpVal + flatWpBonus;
+
+        // 5. Avatar Ratio Autoparse
+        let totalActiveAvatarPct = 0;
+        if (avatars && Array.isArray(avatars)) {
+          avatars.forEach(av => {
+            if (!av.Tooltip) return;
+            if (av.Tooltip.includes('적용되지 않는 상태')) return;
+            const cleanText = av.Tooltip.replace(/<[^>]*>?/gm, '');
+            const match = cleanText.match(/(지능|힘|민첩)\s*\+\s*([\d\.]+)%/);
+            if (match) {
+              totalActiveAvatarPct += parseFloat(match[2]);
+            }
+          });
+        }
+        // Set avatar multiplier: active avatar % + 1% pet ranch effect (상시 적용)
+        const derivedAvatarMult = 1 + (totalActiveAvatarPct / 100) + 0.01;
+        sliderAvatarMult.value = derivedAvatarMult.toFixed(2);
+        lblAvatarMult.textContent = `${Math.round((derivedAvatarMult - 1) * 100)}% (나누기 ${derivedAvatarMult.toFixed(2)})`;
+
+        if (detailAvatarMult) {
+          detailAvatarMult.textContent = `${derivedAvatarMult.toFixed(2)}배`;
+          let avParts = [];
+          if (totalActiveAvatarPct > 0) avParts.push(`아바타 효과: +${totalActiveAvatarPct.toFixed(2)}%`);
+          avParts.push(`펫 효과: +1.0%`);
+          detailAvatarBreakdown.innerHTML = avParts.join('<br>');
+          detailAvatarBreakdown.style.display = avParts.length > 0 ? 'block' : 'none';
+        }
+
+        // 6. Accessory WP% and Karma WP% Autoparse
+        let accWpPercent = 0;
+        let accWpBreakdownText = [];
+        if (equipment && Array.isArray(equipment)) {
+          equipment.forEach(item => {
+            if (['목걸이', '귀걸이', '반지', '팔찌'].includes(item.Type) && item.Tooltip) {
+              const cleanText = item.Tooltip.replace(/<[^>]*>?/gm, '');
+              const matches = cleanText.match(/무기\s*공격력\s*\+\s*([\d\.]+)%/g);
+              if (matches) {
+                matches.forEach(m => {
+                  const parts = m.match(/무기\s*공격력\s*\+\s*([\d\.]+)%/);
+                  if (parts) {
+                    const val = parseFloat(parts[1]);
+                    accWpPercent += val;
+                    accWpBreakdownText.push(`${item.Type}(+${val.toFixed(2)}%)`);
+                  }
+                });
+              }
+            }
+          });
+        }
+
+        // Parse Karma Level from ArkPassive 깨달음 Points
+        let karmaLevel = 0;
+        if (arkpassive && Array.isArray(arkpassive.Points)) {
+          const enlightenment = arkpassive.Points.find(p => p.Name === '깨달음');
+          if (enlightenment && enlightenment.Description) {
+            const match = enlightenment.Description.match(/(\d+)레벨/);
+            if (match) {
+              karmaLevel = parseInt(match[1], 10);
+            }
+          }
+        }
+        const karmaWpPercent = karmaLevel * 0.1; // 0.1% weapon power per Karma level
+
+        // Accessories parsed WP% + Karma WP%
+        const totalWpPercent = accWpPercent + karmaWpPercent;
+        sliderWpPercent.value = totalWpPercent.toFixed(2);
+        lblWpPercent.textContent = `+${totalWpPercent.toFixed(2)}% (나누기 ${(1 + totalWpPercent/100).toFixed(4)})`;
+
+        if (detailWpPercent) {
+          detailWpPercent.textContent = `+${totalWpPercent.toFixed(2)}%`;
+          let wpParts = [];
+          if (accWpBreakdownText.length > 0) wpParts.push(`장신구 연마: ${accWpBreakdownText.join(', ')}`);
+          if (karmaWpPercent > 0) wpParts.push(`깨달음 카르마: +${karmaWpPercent.toFixed(2)}% (${karmaLevel}레벨)`);
+          detailWpBreakdown.innerHTML = wpParts.length > 0 ? wpParts.join('<br>') : '추가 효과 없음';
+          detailWpBreakdown.style.display = 'block';
+        }
+
+        // Populate the input field with the FINAL weapon power (including % boost)
+        const finalWpVal = Math.floor(totalWpVal * (1 + totalWpPercent / 100));
+        inputWeaponPower.value = finalWpVal || 250000;
+
+        if (detailFlatWp) {
+          detailFlatWp.textContent = format(totalWpVal);
+          let flatWpParts = [];
+          if (wpVal > 0) flatWpParts.push(`무기 기본 무공: +${format(wpVal)}`);
+          if (flatWpBonus > 0) flatWpParts.push(`팔찌 등 추가 무공: +${format(flatWpBonus)}`);
+          flatWpParts.push(`최종 무기 공격력 (인게임 표시): ${format(finalWpVal)}`);
+          detailFlatWpBreakdown.innerHTML = flatWpParts.join('<br>');
+          detailFlatWpBreakdown.style.display = 'block';
+        }
+
+        // 7. Ability Stone & Gems AP% Autoparse
+        let stoneApPercent = 0;
+        if (equipment && Array.isArray(equipment)) {
+          const stone = equipment.find(item => item.Type === '어빌리티 스톤');
+          if (stone && stone.Tooltip) {
+            const cleanText = stone.Tooltip.replace(/<[^>]*>?/gm, '');
+            const match = cleanText.match(/기본\s*공격력\s*\+\s*([\d\.]+)%/);
+            if (match) {
+              stoneApPercent = parseFloat(match[1]);
+            }
+          }
+        }
+
+        let gemsApPercent = 0;
+        if (gems && gems.Effects && Array.isArray(gems.Effects.Skills)) {
+          gems.Effects.Skills.forEach(s => {
+            if (s.Option) {
+              const match = s.Option.match(/기본\s*공격력\s*([\d\.]+)%\s*증가/);
+              if (match) {
+                gemsApPercent += parseFloat(match[1]);
+              }
+            }
+          });
+        }
+        const totalApPercent = gemsApPercent + stoneApPercent;
+        sliderApPercent.value = totalApPercent.toFixed(2);
+        lblApPercent.textContent = `+${totalApPercent.toFixed(2)}%`;
+
+        if (detailApPercent) {
+          detailApPercent.textContent = `+${totalApPercent.toFixed(2)}%`;
+          let apParts = [];
+          if (gemsApPercent > 0) apParts.push(`보석(공격력 노드): +${gemsApPercent.toFixed(2)}%`);
+          if (stoneApPercent > 0) apParts.push(`어빌리티 스톤: +${stoneApPercent.toFixed(2)}%`);
+          detailApBreakdown.innerHTML = apParts.length > 0 ? apParts.join('<br>') : '추가 효과 없음';
+          detailApBreakdown.style.display = 'block';
+        }
+
+        // 8. Main Stat & Base AP Correction -> Derived mathematically from Base AP, Weapon Power and Gems AP%
+        const apPercentVal = parseFloat(sliderApPercent.value) || 12.5;
+        const apMultiplier = 1 + (apPercentVal / 100);
+        const targetWp = finalWpVal || 250000;
+
+        // 펫 1% 보정: API 기본공격력에는 펫 주스탯 1%가 누락되어 있음
+        // 기본공격력 = sqrt(주스탯 * 무공 / 6) * AP배율 이므로,
+        // 주스탯이 M_game/M_api 비율로 증가하면 기본공격력은 sqrt(비율)만큼 증가
+        if (baseAp > 0) {
+          const avatarMult_no_pet = derivedAvatarMult - 0.01; // API 상태 (펫 없음)
+          const correctionRatio = Math.sqrt(derivedAvatarMult / avatarMult_no_pet);
+          baseAp = Math.round(baseAp * correctionRatio);
+          inputBaseAp.value = baseAp;
+        }
+
+        // 최종 보정 주스탯 계산
+        const rawBaseAp = baseAp / apMultiplier;
+        const calculatedMainStat = Math.round((6 * Math.pow(rawBaseAp, 2)) / targetWp);
+
+        charMainStatName = '힘/민/지';
+        labelMainStat.textContent = '주스탯 (힘/민/지)';
+        inputMainStat.value = calculatedMainStat || 800000;
+
+        // Lock API verified fields
+        inputBaseAp.disabled = true;
+        inputCp.disabled = true;
+        inputMainStat.disabled = true;
+        inputWeaponPower.disabled = true;
+        sliderAvatarMult.disabled = true;
+        sliderApPercent.disabled = true;
+        sliderWpPercent.disabled = true;
+
+        // Update badge and unlock button
+        editModeBadge.textContent = 'API 연동 모드 (잠금)';
+        editModeBadge.style.background = 'rgba(16, 185, 129, 0.1)';
+        editModeBadge.style.borderColor = 'rgba(16, 185, 129, 0.3)';
+        editModeBadge.style.color = 'var(--success)';
+        unlockBtn.style.display = 'inline-flex';
+
+        // Show details panel
+        if (apiParsingDetails) apiParsingDetails.style.display = 'flex';
+
+        // Trigger recalculation immediately
+        calculate();
+      }
+
+      // Unlock button event listener
+      unlockBtn.addEventListener('click', () => {
+        // Unlock all fields
+        inputBaseAp.disabled = false;
+        inputCp.disabled = false;
+        inputMainStat.disabled = false;
+        inputWeaponPower.disabled = false;
+        sliderAvatarMult.disabled = false;
+        sliderApPercent.disabled = false;
+        sliderWpPercent.disabled = false;
+
+        // Reset badge and unlock button
+        editModeBadge.textContent = '수동 편집 모드';
+        editModeBadge.style.background = 'rgba(255, 255, 255, 0.05)';
+        editModeBadge.style.borderColor = 'var(--border-color)';
+        editModeBadge.style.color = 'var(--text-secondary)';
+        unlockBtn.style.display = 'none';
+
+        // Hide API specific details
+        if (apiParsingDetails) apiParsingDetails.style.display = 'none';
+        if (infoCard) infoCard.style.display = 'none';
+      });
+
+      // History logic
+      const historyContainer = document.getElementById('history-container');
+      const historyTagsBox = document.getElementById('history-tags-box');
+
+      function loadSearchHistory() {
+        const saved = localStorage.getItem('lostark_search_history');
+        if (saved) {
+          try {
+            searchHistory = JSON.parse(saved);
+            renderHistory();
+          } catch (e) {
+            console.error(e);
+          }
+        }
+      }
+
+      function renderHistory() {
+        if (searchHistory.length === 0) {
+          historyContainer.style.display = 'none';
+          return;
+        }
+
+        historyTagsBox.innerHTML = '';
+        searchHistory.forEach(name => {
+          const tag = document.createElement('div');
+          tag.className = 'history-tag';
+          tag.innerHTML = `
+            <span>${name}</span>
+            <span class="history-tag-close">&times;</span>
+          `;
+          
+          tag.addEventListener('click', () => {
+            charNameField.value = name;
+            searchForm.requestSubmit();
+          });
+
+          const closeBtn = tag.querySelector('.history-tag-close');
+          closeBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            removeSearchHistory(name);
+          });
+
+          historyTagsBox.appendChild(tag);
+        });
+
+        historyContainer.style.display = 'flex';
+        lucide.createIcons();
+      }
+
+      function saveSearchHistory(name) {
+        searchHistory = [name, ...searchHistory.filter(h => h !== name)].slice(0, 5);
+        localStorage.setItem('lostark_search_history', JSON.stringify(searchHistory));
+        renderHistory();
+      }
+
+      function removeSearchHistory(name) {
+        searchHistory = searchHistory.filter(h => h !== name);
+        localStorage.setItem('lostark_search_history', JSON.stringify(searchHistory));
+        renderHistory();
+      }
+
+
+
+      // Initial page setup
+      loadSearchHistory();
+      lucide.createIcons();
+      calculate();
+    </script>
+  </body>
+</html>

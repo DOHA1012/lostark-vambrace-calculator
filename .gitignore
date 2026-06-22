@@ -1,0 +1,5 @@
+node_modules/
+.gemini/
+.agents/
+temp_test.js
+validate_syntax.js
